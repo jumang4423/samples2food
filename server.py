@@ -1,11 +1,11 @@
 import sys
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python server.py <sound_dir> <output_dir>")
+    if len(sys.argv) < 2:
+        print("Usage: python server.py <sound_dir>")
         exit(1)
     sound_dir = sys.argv[1]
-    dir_out = sys.argv[2]
+    dir_out = sound_dir + "/out"
     # load lib for samples2food
     from samples2food import samples2food, folder_valid, get_sound_file_paths, soundfile_name_validation
     soundfile_name_validation(sound_dir)
