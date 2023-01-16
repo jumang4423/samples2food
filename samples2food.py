@@ -32,10 +32,13 @@ def tile(filename, dir_out, tmp_png_path):
 
     return fileNames
 
-def folder_valid(dir_out, sound_dir):
-    # if output dir doesnt exist
-    if not os.path.exists(dir_out):
-        os.makedirs(dir_out)
+def folder_valid(img_out, sound_dir, cap_out):
+    # if img output dir doesnt exist
+    if not os.path.exists(img_out):
+        os.makedirs(img_out)
+    # if caption output dir doesnt exist
+    if not os.path.exists(cap_out):
+        os.makedirs(cap_out)
     # if sound_dir doesnt exist
     if not os.path.exists(sound_dir):
         print("sound_dir doesnt exist")
@@ -48,7 +51,7 @@ def soundfile_name_validation(sound_dir):
     for file in os.listdir(sound_dir):
         if file.endswith(".wav") or file.endswith(".mp3"):
             # replace _ with , in text then rename
-            new_file_name = file.replace("_", ", ")
+            new_file_name = file.replace("_", ", ").replace(" ", "-")
             os.rename(os.path.join(sound_dir, file), os.path.join(sound_dir, new_file_name))
 
 
@@ -74,32 +77,40 @@ def write_jsonl_metadata(arr_r, out_dir):
         data.append(
             {
                 "image_file_path": image_file_path,
-                "text": "_".join(Path(line).stem.split("_")[:-1]).replace("_", ", ")
+                "text": "_".join(Path(line).stem.split("_")[:-1]).replace("_", ", ").replace("-", " "),
             }
         )
     with open(jsonl_file_path, "w") as metadata_file:
         for line in data:
             metadata_file.write(json.dumps(line) + "\n")
 
-    print("metadata.jsonl file created")
+    return data
+
+def write_captions(jsonl_obj, caption_out):
+    for json_dict in jsonl_obj:
+        with open(os.path.join(caption_out, json_dict["image_file_path"].replace(".png", ".txt")), "w") as f:
+            f.write(json_dict["text"])
 
 # clean up tempo fl
 def rm_tempo_img(tmp_file_path):
     os.remove(tmp_file_path)
 
-def samples2food(sound_file_paths, dir_out):
+def samples2food(sound_file_paths, img_out, caption_out):
     bar = tqdm(total=len(sound_file_paths))
     fileNames = []
     for sound_file_path in sound_file_paths:
         # gen long png as tmp.png from audio file
         temp_image_path = "./tmp.png"
         audio_to_image(sound_file_path, temp_image_path, device=get_backend())
-        _file_names = tile(sound_file_path, dir_out, temp_image_path)
+        _file_names = tile(sound_file_path, img_out, temp_image_path)
         fileNames.extend(_file_names)
         bar.update(1)
 
     # write metadata.jsonl
-    write_jsonl_metadata(fileNames, dir_out)
+    jsonl_obj = write_jsonl_metadata(fileNames, img_out)
 
     # remove tmp.png
     rm_tempo_img(temp_image_path)
+
+    # write captions
+    write_captions(jsonl_obj, caption_out)
